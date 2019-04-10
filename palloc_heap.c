@@ -26,7 +26,7 @@ int palloc_init()
         chunk->header.n_free_blks = chunk_size; // calculate last chunk size here
     }
 
-    if (CHUNKS_NUM > 1)
+    if (CHUNKS_NUM > 0)
     {
         // last chunk header points to null
         chunk->header.ch_ptr = NULL;
