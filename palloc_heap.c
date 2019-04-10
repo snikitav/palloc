@@ -4,10 +4,6 @@
 static chunk_header_t* _p_head = NULL;
 // allocatable data
 static char  _pool[(POOL_SIZE * BLOCK_SIZE) + (sizeof(chunk_header_t) * CHUNKS_NUM)];
-// full chunks number
-static size_t chunks_num = CHUNKS_NUM;
-size_t block_size = BLOCK_SIZE;
-size_t l_ch_size = LAST_CHUNK_SIZE;
 
 int palloc_init()
 {
