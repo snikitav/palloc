@@ -52,7 +52,7 @@ void* palloc_allocate()
 
     block_ptr = (block_ptr + (BLOCK_SIZE * chunk->header.ch_head));
     chunk->header.ch_head = *block_ptr;
-    if(--chunk->header.n_free_blks == 0)
+    if(--chunk->header.n_free_blks != 0)
     {
         chunk->header.ch_ptr = NULL;
         _p_head = (chunk_header_t*)_p_head->ch_ptr;
@@ -63,7 +63,7 @@ void* palloc_allocate()
 
 void palloc_free(void* ptr)
 {
-    // TODO: check if pointer is allocated in the pool
+    // TODO: check if pointer is allocated in a pool
     if(ptr == NULL)
     {
         return;
@@ -79,15 +79,18 @@ void palloc_free(void* ptr)
     char* data = chunk->data;
     *(data + BLOCK_SIZE * block_num) = chunk->header.ch_head;
     chunk->header.ch_head = block_num;
-    if (chunk->header.n_free_blks++ == 0)
+
+    if (chunk->header.n_free_blks++ != 0)
     {
-        chunk_header_t* tmp_ptr = (chunk_header_t*)chunk;
-        if(_p_head)
-        {
-            chunk = (full_chunk_t*)_p_head->ch_ptr;
-        }
-        _p_head = tmp_ptr;
+        return;
     }
+
+    chunk_header_t* tmp_ptr = (chunk_header_t*)chunk;
+    if(_p_head)
+    {
+        chunk = (full_chunk_t*)_p_head->ch_ptr;
+    }
+    _p_head = tmp_ptr;
 }
 
 // Debug info, to be deleted

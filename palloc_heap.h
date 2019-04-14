@@ -1,3 +1,8 @@
+#ifndef _PALLOC_HEAP_GUARD
+#define _PALLOC_HEAP_GUARD
+
+#define PALLOC_TARGET_ARM ARM
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -10,6 +15,10 @@
 // pool size in blocks
 #ifndef POOL_SIZE
 #define POOL_SIZE 256000
+#endif
+
+#if PALLOC_TARGET == PALLOC_TARGET_ARM
+// TODO: define lock and unlock mutex for an arm
 #endif
 
 #define CHUNK_SIZE 255 // TODO: test corner cases!
@@ -42,10 +51,12 @@ typedef struct
 #define CHUNKS_NUM (POOL_SIZE / CHUNK_SIZE)
 #else
 #define CHUNKS_NUM (POOL_SIZE / CHUNK_SIZE) + 1
-#endif
+#endif // LAST_CHUNK_SIZE > 0 || POOL_SIZE == 1
 
 
 void print_sizes();
 int palloc_init();
 void* palloc_allocate();
 void palloc_free(void*);
+
+#endif // _PALLOC_HEAP_GUARD
