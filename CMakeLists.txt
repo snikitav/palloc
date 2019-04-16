@@ -4,9 +4,8 @@ project(palloc)
 
 cmake_policy(SET CMP0065 NEW)
 
-add_executable(palloc palloc_heap.c
-                      main.c)
-set_property(TARGET palloc PROPERTY C_STANDARD 99)
+add_library(libpalloc STATIC palloc_heap.c)
+set_property(TARGET libpalloc PROPERTY C_STANDARD 99)
 
 if(${POOL})
     add_definitions(-DPOOL_SIZE=${POOL})
