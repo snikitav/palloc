@@ -31,23 +31,40 @@ typedef uintptr_t* header_ptr_t;
     ch_ptr - pointer to the next chunk with available block
     ch_head - offset to the next free block inside a chunk
     n_free_blks - number of free blocks whithin a chunk
+    offset - offset to align header by 16 bytes
  */
 typedef struct
 {
     header_ptr_t ch_ptr;
     uint8_t ch_head;
     uint8_t n_free_blks;
+    uint8_t offset[14 - sizeof(header_ptr_t)];
 } chunk_header_t;
 
-typedef struct
+/*
+    Structure represents whole chunk of blocks:
+    header - ponter to chunk header
+    data - pointer to chunk data
+
+    NOTE: Structure is packed to avoid additional
+    alignment between chunks. Block size is arbitrary
+    set in compile time and we need constant structure
+    size depending on block and pool size.
+
+    There should be no drawbacks, because we iterate
+    this structure directly only once on allocator init.
+    On the other hand, packing full_chunk_t structure
+    is convinient for address bias calculations.
+*/
+typedef struct __attribute__((packed))
 {
     chunk_header_t header;
-    char data[BLOCK_SIZE * CHUNK_SIZE];
+    uint8_t data[BLOCK_SIZE * CHUNK_SIZE];
 } full_chunk_t;
 
 #define LAST_CHUNK_SIZE POOL_SIZE % CHUNK_SIZE
 
-#if LAST_CHUNK_SIZE > 0 || POOL_SIZE == 1
+#if LAST_CHUNK_SIZE || POOL_SIZE == 1
 #define CHUNKS_NUM (POOL_SIZE / CHUNK_SIZE)
 #else
 #define CHUNKS_NUM (POOL_SIZE / CHUNK_SIZE) + 1
@@ -55,7 +72,7 @@ typedef struct
 
 
 void print_sizes();
-int palloc_init();
+void palloc_init();
 void* palloc_allocate();
 void palloc_free(void*);
 
