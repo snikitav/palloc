@@ -1,22 +1,12 @@
 cmake_minimum_required(VERSION 3.4)
 
-project(palloc)
-
 cmake_policy(SET CMP0065 NEW)
 
-add_library(palloc STATIC palloc_heap.c)
-set_property(TARGET palloc PROPERTY C_STANDARD 99)
+project(palloc_root)
 
-if(DEFINED POOL)
-    if(NOT (${POOL} MATCHES "^[1-9]+$"))
-        message(SEND_ERROR "Pool size must be a positive number")
-    endif()
-    add_definitions(-DPOOL_SIZE=${POOL})
-endif()
+set(LIBPALLOC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src CACHE PATH "Path to libpalloc sources")
+set(PALLOC_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/test CACHE PATH "Path to libpalloc test sources")
+set(PALLOC_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/out CACHE PATH "Output location")
 
-if(DEFINED SIZE)
-    if(NOT (SIZE MATCHES "^[1-9]+$"))
-        message(SEND_ERROR "Block size must be a positive number")
-    endif()
-    add_definitions(-DBLOCK_SIZE=${SIZE})
-endif()
+add_subdirectory(${PALLOC_TEST_DIR})
+add_subdirectory(${LIBPALLOC_DIR})

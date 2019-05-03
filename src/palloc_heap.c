@@ -5,6 +5,12 @@ static chunk_header_t* _p_head = NULL;
 // allocatable data
 static uint8_t  _pool[(POOL_SIZE * BLOCK_SIZE) + (sizeof(chunk_header_t) * CHUNKS_NUM)];
 
+// debug, delete it!
+// int real_size = (POOL_SIZE * BLOCK_SIZE) + (sizeof(chunk_header_t) * CHUNKS_NUM);
+// int block_size = BLOCK_SIZE;
+// int pool_size = POOL_SIZE;
+// int chunks_num = CHUNKS_NUM;
+
 static size_t free_blocks = POOL_SIZE;
 
 void palloc_init()
@@ -44,7 +50,7 @@ void* palloc_allocate()
     chunk->header.ch_head = *block_ptr;
 
     // delete allocator marks from data
-    *block_ptr = 0;
+    //*block_ptr = 0;
 
     if(--(chunk->header.n_free_blks) == 0)
     {
