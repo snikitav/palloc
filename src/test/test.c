@@ -1,68 +1,74 @@
 #include "test.h"
-#include "assert.h"
 
-static uintptr_t* ptrs[POOL_SIZE];
+static test_struct_t tests[POOL_SIZE];
 
 void consecutive_test()
 {
     for(int i = 0; i < POOL_SIZE; i++)
     {
-        ptrs[i] = (uintptr_t*) palloc_allocate();
-        uintptr_t* ptr = ptrs[i];
-        *ptr = 42000;
+        tests[i].ptr = (check_t*) palloc_allocate();
+        check_t check = rand() % PALLOC_TEST_MAX_VAL;
+        *tests[i].ptr = check;
+        tests[i].check_val = check;
     }
 
     for(int i = 0; i < POOL_SIZE; i++)
     {
-        uintptr_t* ptr = ptrs[i];
-        assert(*ptr == 42000);
-        *ptr = 43000;
-        palloc_free(ptr);
+        if(*tests[i].ptr != tests[i].check_val)
+        {
+            perror("Consecutive test failed on dealloc\n");
+            exit(1);
+        }
+        palloc_free(tests[i].ptr);
     }
-
-    printf("Consecutive test success\n");
 }
 
 void random_test()
 {
-    time_t t;
-    srand((unsigned) time(&t));
+    for(int i = 0; i < POOL_SIZE; i++)
+    {
+        tests[i].ptr = (check_t*) palloc_allocate();
+        check_t check = rand() % PALLOC_TEST_MAX_VAL;
+        *tests[i].ptr = check;
+        tests[i].check_val = check;
+    }
+
+    const int psmo = POOL_SIZE - 1;
 
     for(int i = 0; i < POOL_SIZE; i++)
     {
-        ptrs[i] = (uintptr_t*) palloc_allocate();
-        uintptr_t* ptr = ptrs[i];
-        *ptr = 42000;
+        int rnd = (psmo - i) ? rand() % (psmo - i) : 0;
+        if(*tests[rnd].ptr != tests[rnd].check_val)
+        {
+            perror("Random test failed on dealloc\n");
+            exit(1);
+        }
+        palloc_free(tests[rnd].ptr);
+
+        test_struct_t tmp = tests[psmo - i];
+        tests[psmo - i] = tests[rnd];
+        tests[rnd] = tmp;
     }
-
-    for(int i = 0; i < POOL_SIZE; i++)
-    {
-        int rnd = (POOL_SIZE - 1 - i) ? rand() % (POOL_SIZE - 1 - i) : 0;
-        uintptr_t* ptr = ptrs[rnd];
-        assert(*ptr == 42000);
-        palloc_free(ptr);
-        uintptr_t* tmp = ptrs[POOL_SIZE - 1 - i];
-        ptrs[POOL_SIZE - 1 - i] = ptrs[rnd];
-        ptrs[rnd] = tmp;
-    }
-
-    printf("Random dealloc test success\n");
-
 }
 
 int main(int argc, char** argv)
 {
+    time_t t;
+    srand((unsigned) time(&t));
+
     palloc_init();
 
     for(int i = 0; i < 100; i++)
     {
         consecutive_test();
     }
+    printf("Consecutive test success\n");
 
     for(int i = 0; i < 100; i++)
     {
         random_test();
     }
+    printf("Random dealloc test success\n");
 
     return 0;
 }
