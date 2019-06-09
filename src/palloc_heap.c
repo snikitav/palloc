@@ -32,6 +32,10 @@ void palloc_init()
 
 void* palloc_allocate()
 {
+#ifdef PALLOC_LOCK
+    PALLOC_LOCK()
+#endif
+
     if(_p_head == NULL)
     {
         // no space left in a pool
@@ -55,11 +59,19 @@ void* palloc_allocate()
         _p_head = chunk->next;
     }
 
+#ifdef PALLOC_UNLOCK
+    PALLOC_UNLOCK()
+#endif
+
     return (void*) block_ptr;
 }
 
 void palloc_free(void* ptr)
 {
+#ifdef PALLOC_LOCK
+    PALLOC_LOCK()
+#endif
+
     // TODO: check if pointer is allocated in a pool
     if(ptr == NULL)
     {
@@ -92,6 +104,10 @@ void palloc_free(void* ptr)
 
     chunk->next = _p_head;
     _p_head = chunk;
+
+#ifdef PALLOC_UNLOCK
+    PALLOC_UNLOCK()
+#endif
 }
 
 palloc_info_t palloc_get_info()
