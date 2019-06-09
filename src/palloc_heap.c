@@ -1,37 +1,33 @@
 #include "palloc_heap.h"
 
-// free node
-static chunk_header_t* _p_head = NULL;
+// pointer to free node
+static palloc_chunk_t* _p_head = NULL;
+
 // allocatable data
-static uint8_t  _pool[(POOL_SIZE * BLOCK_SIZE) + (sizeof(chunk_header_t) * CHUNKS_NUM)];
+static palloc_chunk_t  _pool[CHUNKS_NUM];
 
-// debug, delete it!
-// int real_size = (POOL_SIZE * BLOCK_SIZE) + (sizeof(chunk_header_t) * CHUNKS_NUM);
-// int block_size = BLOCK_SIZE;
-// int pool_size = POOL_SIZE;
-// int chunks_num = CHUNKS_NUM;
-
+// number of free blocks
 static size_t free_blocks = POOL_SIZE;
 
 void palloc_init()
 {
-    full_chunk_t* chunk = (full_chunk_t *) _pool;
-    _p_head = &chunk->header;
+    palloc_chunk_t* chunk = _p_head = _pool;
 
     // build in-place linked list of available chunks
-    for(int i = 0; i <= CHUNKS_NUM; i++, chunk++)
+    for(int i = 0; i < CHUNKS_NUM; i++, chunk++)
     {
-        chunk->header.ch_ptr = (i != CHUNKS_NUM) ? (header_ptr_t)(chunk + 1) : NULL;
-        chunk->header.ch_head = 0;
-        int chunk_size = (i != CHUNKS_NUM) ? CHUNK_SIZE : LAST_CHUNK_SIZE;
-        for(int j = 0; j < chunk_size; j++)
+        chunk->next = (chunk + 1);
+        chunk->next_free_block = 0;
+        chunk->num_free_blks = CHUNK_SIZE;
+        for(int j = 0; j < CHUNK_SIZE; j++)
         {
             uint8_t* data = chunk->data;
-            *(data + BLOCK_SIZE * j) = j + 1; // possible error, test it!
+            *(data + BLOCK_SIZE * j) = j + 1;
         }
-
-        chunk->header.n_free_blks = chunk_size;
     }
+
+    // last pointer of linked list points to NULL
+    (--chunk)->next = NULL;
 }
 
 void* palloc_allocate()
@@ -42,19 +38,21 @@ void* palloc_allocate()
         return NULL;
     }
 
-    full_chunk_t* chunk = (full_chunk_t*) _p_head;
+    free_blocks--;
+
+    palloc_chunk_t* chunk = _p_head;
     uint8_t* block_ptr = chunk->data;
 
-
-    block_ptr = (block_ptr + (BLOCK_SIZE * chunk->header.ch_head));
-    chunk->header.ch_head = *block_ptr;
-
+    // calculate offset of next free block in a chunk
+    block_ptr = (block_ptr + (BLOCK_SIZE * chunk->next_free_block));
+    // set new free block number
+    chunk->next_free_block = *block_ptr;
     // delete allocator marks from data
-    //*block_ptr = 0;
+    *block_ptr = 0;
 
-    if(--(chunk->header.n_free_blks) == 0)
+    if(--(chunk->num_free_blks) == 0)
     {
-        _p_head = (chunk_header_t*)_p_head->ch_ptr;
+        _p_head = chunk->next;
     }
 
     return (void*) block_ptr;
@@ -70,45 +68,34 @@ void palloc_free(void* ptr)
 
     free_blocks++;
 
-    // first, calculate block num for a given ponter
-    uintptr_t full_chunk_size = sizeof(full_chunk_t);
+    // first, calculate pointer to corresponting chunk
+    uintptr_t chunk_size = sizeof(palloc_chunk_t);
     uintptr_t block_uptr = (uintptr_t) ptr;
     uintptr_t pool_uptr = (uintptr_t)_pool;
     uintptr_t diff = block_uptr - pool_uptr;
-    uintptr_t block_num = (diff % full_chunk_size - sizeof(chunk_header_t)) / BLOCK_SIZE;
-    // second, find out pointer to corresponding chunk
-    full_chunk_t* chunk = (full_chunk_t*)(block_uptr - (block_num * BLOCK_SIZE) - sizeof(chunk_header_t));
+    palloc_chunk_t* chunk = (palloc_chunk_t*) (block_uptr - (diff % chunk_size));
 
-    uint8_t* data = chunk->data;
-    *(data + BLOCK_SIZE * block_num) = chunk->header.ch_head;
-    chunk->header.ch_head = block_num;
+    // second, calculate block number in chunk data
+    uintptr_t data_uptr = (uintptr_t) &chunk->data;
+    uintptr_t data_diff = block_uptr - data_uptr;
+    uintptr_t block_num = data_diff / BLOCK_SIZE;
 
-    if (chunk->header.n_free_blks++ != 0)
+    // put in deallocated block info about previous free block
+    *(chunk->data + BLOCK_SIZE * block_num) = chunk->next_free_block;
+    // put deallocated block number as next free block number
+    chunk->next_free_block = block_num;
+
+    if (chunk->num_free_blks++ != 0)
     {
         return;
     }
 
-    chunk->header.ch_ptr = (header_ptr_t)_p_head;
-    _p_head = &chunk->header;
+    chunk->next = _p_head;
+    _p_head = chunk;
 }
 
-// Debug info, to be deleted
-void print_sizes()
+palloc_info_t palloc_get_info()
 {
-    printf("Block size: %d\n", BLOCK_SIZE);
-    printf("Pool size: %d\n", POOL_SIZE);
-
-    chunk_header_t* _local_p_head = _p_head;
-
-    int i = 0;
-    do
-    {
-        int j;
-        for(j = 0; j < _local_p_head->n_free_blks; j++)
-        {
-            i++;
-        }
-        _local_p_head = (chunk_header_t*)_local_p_head->ch_ptr;
-    } while (_local_p_head);
-    printf("Free blocks: %d\n", i);
+    palloc_info_t info = { BLOCK_SIZE, POOL_SIZE, free_blocks };
+    return info;
 }

@@ -58,13 +58,13 @@ int main(int argc, char** argv)
 
     palloc_init();
 
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 50; i++)
     {
         consecutive_test();
     }
     printf("Consecutive test success\n");
 
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 50; i++)
     {
         random_test();
     }
